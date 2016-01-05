@@ -25,15 +25,22 @@ import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.graphics.Bitmap;
 import android.graphics.PorterDuff.Mode;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SimpleCursorAdapter;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
@@ -44,12 +51,11 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.SearchView;
 import android.widget.TextView;
 
 import com.j256.ormlite.android.AndroidDatabaseResults;
 
-public class ZulipActivity extends FragmentActivity implements
+public class ZulipActivity extends AppCompatActivity implements
         MessageListFragment.Listener {
 
     ZulipApp app;
@@ -82,6 +88,8 @@ public class ZulipActivity extends FragmentActivity implements
     MessageListFragment homeList;
 
     Notifications notifications;
+    FloatingActionButton mComposeFAB;
+    FloatingActionButton mComposeToPersonFAB;
 
     private SimpleCursorAdapter.ViewBinder streamBinder = new SimpleCursorAdapter.ViewBinder() {
 
@@ -179,19 +187,9 @@ public class ZulipActivity extends FragmentActivity implements
         setContentView(R.layout.main);
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawerToggle = new ActionBarDrawerToggle(this, drawerLayout,
-                R.drawable.ic_drawer, R.string.streams_open,
-                R.string.streams_close) {
-
-            /** Called when a drawer has settled in a completely closed state. */
-            public void onDrawerClosed(View view) {
-                // pass
-            }
-
-            /** Called when a drawer has settled in a completely open state. */
-            public void onDrawerOpened(View drawerView) {
-                // pass
-            }
+        drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.streams_open, R.string.streams_close) {
+            public void onDrawerClosed(View view) {}
+            public void onDrawerOpened(View drawerView) {}
         };
 
         // Set the drawer toggle as the DrawerListener
@@ -321,14 +319,50 @@ public class ZulipActivity extends FragmentActivity implements
         };
         statusUpdateHandler.post(statusUpdateRunnable);
 
-        if (android.os.Build.VERSION.SDK_INT >= 11 && getActionBar() != null) {
+        if (android.os.Build.VERSION.SDK_INT >= 11 && getSupportActionBar() != null) {
             // the AB is unavailable when invoked from JUnit
-            getActionBar().setDisplayHomeAsUpEnabled(true);
-            getActionBar().setHomeButtonEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+
+            LayerDrawable dr = (LayerDrawable)getResources().getDrawable(R.drawable.custom_home_toolbar_logo);
+            Bitmap bitmap = ((BitmapDrawable) dr.getDrawable(0)).getBitmap();
+            Drawable homeDrawable = new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(bitmap, dpToPx(30), dpToPx(30), true));
+
+            getSupportActionBar().setIcon(homeDrawable);
+            getSupportActionBar().setHomeButtonEnabled(true);
         }
 
         homeList = MessageListFragment.newInstance(null);
         pushListFragment(homeList, null);
+
+        mComposeFAB = (FloatingActionButton) findViewById(R.id.activity_main_compose_fab);
+        mComposeToPersonFAB = (FloatingActionButton) findViewById(R.id.activity_main_compose_to_person_fab);
+        mComposeFAB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String stream = null;
+                if (currentList.filter != null
+                        && currentList.filter.getComposeStream() != null) {
+                    stream = currentList.filter.getComposeStream().getName();
+                }
+                openCompose(MessageType.STREAM_MESSAGE, stream, null, null);
+            }
+        });
+        mComposeToPersonFAB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String recipient = null;
+                if (currentList.filter != null)
+                    recipient = currentList.filter.getComposePMRecipient();
+                openCompose(MessageType.PRIVATE_MESSAGE, null, null, recipient);
+            }
+        });
+    }
+
+    public int dpToPx(int dp) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+        return px;
     }
 
     public void onBackPressed() {
@@ -398,17 +432,17 @@ public class ZulipActivity extends FragmentActivity implements
 
         if (filter == null) {
             if (android.os.Build.VERSION.SDK_INT >= 11) {
-                getActionBar().setTitle("Zulip");
-                getActionBar().setSubtitle(null);
+                getSupportActionBar().setTitle("Zulip");
+                getSupportActionBar().setSubtitle(null);
             }
             this.drawerToggle.setDrawerIndicatorEnabled(true);
         } else {
             String title = list.filter.getTitle();
             if (android.os.Build.VERSION.SDK_INT >= 11) {
                 if (title != null) {
-                    getActionBar().setTitle(title);
+                    getSupportActionBar().setTitle(title);
                 }
-                getActionBar().setSubtitle(list.filter.getSubtitle());
+                getSupportActionBar().setSubtitle(list.filter.getSubtitle());
             }
             this.drawerToggle.setDrawerIndicatorEnabled(false);
         }
@@ -496,7 +530,7 @@ public class ZulipActivity extends FragmentActivity implements
             break;
         case R.id.search:
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppCompatAlertDialogStyle);
                 builder.setTitle("Search Zulip");
                 final EditText editText = new EditText(this);
                 builder.setView(editText);
@@ -514,21 +548,21 @@ public class ZulipActivity extends FragmentActivity implements
             }
             break;
 
-        case R.id.compose_stream:
-            String stream = null;
-            if (currentList.filter != null
-                    && currentList.filter.getComposeStream() != null) {
-                stream = currentList.filter.getComposeStream().getName();
-            }
-            openCompose(MessageType.STREAM_MESSAGE, stream, null, null);
-            break;
-        case R.id.compose_pm:
-            String recipient = null;
-            if (currentList.filter != null) {
-                recipient = currentList.filter.getComposePMRecipient();
-            }
-            openCompose(MessageType.PRIVATE_MESSAGE, null, null, recipient);
-            break;
+//        case R.id.compose_stream:
+//            String stream = null;
+//            if (currentList.filter != null
+//                    && currentList.filter.getComposeStream() != null) {
+//                stream = currentList.filter.getComposeStream().getName();
+//            }
+//            openCompose(MessageType.STREAM_MESSAGE, stream, null, null);
+//            break;
+//        case R.id.compose_pm:
+//            String recipient = null;
+//            if (currentList.filter != null) {
+//                recipient = currentList.filter.getComposePMRecipient();
+//            }
+//            openCompose(MessageType.PRIVATE_MESSAGE, null, null, recipient);
+//            break;
         case R.id.refresh:
             Log.w("menu", "Refreshed manually by user. We shouldn't need this.");
             onRefresh();
