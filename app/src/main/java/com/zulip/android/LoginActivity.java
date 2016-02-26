@@ -49,6 +49,7 @@ public class LoginActivity extends Activity implements View.OnClickListener,
                     @Override
                     public void onClick(View v) {
                         connectionProgressDialog.show();
+                        saveServerURL();
                         AsyncLogin alog = new AsyncLogin(that,
                                 ((EditText) findViewById(R.id.username))
                                         .getText().toString(),
@@ -83,7 +84,43 @@ public class LoginActivity extends Activity implements View.OnClickListener,
         connectionProgressDialog = new ProgressDialog(this);
         connectionProgressDialog.setMessage("Signing in...");
         findViewById(R.id.sign_in_button).setOnClickListener(this);
+        setDefaultServerAddressIfEmpty();
+    }
 
+    private void setDefaultServerAddressIfEmpty() {
+        String addr = app.getRawServerURLFromSharedPref();
+        EditText serverURLEditText = ((EditText) findViewById(R.id.server_url));
+        if (serverURLEditText.getText() == null || serverURLEditText.getText().toString().isEmpty()) {
+            if (addr == null || addr.isEmpty())
+                serverURLEditText.setText(getString(R.string.server_url));
+             else
+                serverURLEditText.setText(trimServerURL(addr));
+        }
+    }
+
+    String trimServerURL(String addr) {
+        String url = addr;
+        if (url.startsWith("https://"))
+            url = url.replace("https://", "");
+        if (url.endsWith("api/"))
+            url = url.replace("api/", "");
+        if (url.endsWith("/"))
+            url = url.substring(0, url.length()-1);
+
+        return url;
+    }
+
+    private void saveServerURL() {
+        String serverURL = ((EditText) findViewById(R.id.server_url))
+                .getText().toString();
+        if (!serverURL.startsWith("https://"))
+            serverURL = "https://" + serverURL;
+        if (!serverURL.endsWith("/"))
+            serverURL = serverURL + "/";
+        if (!serverURL.startsWith("https://api.zulip.com/"))
+            serverURL = serverURL + "api/";
+
+        app.setServerURLInSharedPref(serverURL);
     }
 
     @Override

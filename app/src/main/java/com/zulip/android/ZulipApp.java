@@ -124,10 +124,23 @@ public class ZulipApp extends Application {
      * @return either the production or staging server's URI
      */
     public String getServerURI() {
-        if (getEmail().equals("iago@zulip.com")) {
-            return "http://10.0.2.2:9991/api/";
-        }
-        return "https://api.zulip.com/";
+        return settings.getString(
+            "server_url",
+            "https://im.stxnext.pl/api/"
+        );
+    }
+
+    public void setServerURLInSharedPref(String serverURL) {
+        Editor ed = this.settings.edit();
+        ed.putString("server_url", serverURL);
+        ed.commit();
+    }
+
+    public String getRawServerURLFromSharedPref() {
+        return settings.getString(
+                "server_url",
+                null
+        );
     }
 
     public String getApiKey() {
