@@ -11,6 +11,9 @@ android {
         minSdkVersion 16
         targetSdkVersion 23
 
+        versionCode 11
+        versionName "0.8.9"
+
         testApplicationId "com.stxnext.android.zulip.test"
         testInstrumentationRunner "com.stxnext.android.zulip.InstrumentationTestRunner"
     }
