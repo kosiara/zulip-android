@@ -143,6 +143,19 @@ public class ZulipApp extends Application {
         );
     }
 
+    public void setUsernameInSharedPref(String user) {
+        Editor ed = this.settings.edit();
+        ed.putString("zulip_user", user);
+        ed.commit();
+    }
+
+    public String getUsernameFromSharedPref() {
+        return settings.getString(
+                "zulip_user",
+                null
+        );
+    }
+
     public String getApiKey() {
         return api_key;
     }

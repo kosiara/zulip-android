@@ -50,6 +50,7 @@ public class LoginActivity extends Activity implements View.OnClickListener,
                     public void onClick(View v) {
                         connectionProgressDialog.show();
                         saveServerURL();
+                        app.setUsernameInSharedPref(((EditText) findViewById(R.id.username)).getText().toString());
                         AsyncLogin alog = new AsyncLogin(that,
                                 ((EditText) findViewById(R.id.username))
                                         .getText().toString(),
@@ -85,6 +86,7 @@ public class LoginActivity extends Activity implements View.OnClickListener,
         connectionProgressDialog.setMessage("Signing in...");
         findViewById(R.id.sign_in_button).setOnClickListener(this);
         setDefaultServerAddressIfEmpty();
+        ((EditText) findViewById(R.id.username)).setText(app.getUsernameFromSharedPref());
     }
 
     private void setDefaultServerAddressIfEmpty() {
